@@ -1,0 +1,95 @@
+# this is to create a custom directory where Elastic will be placed
+- name: Create directory for Elastic Agent
+  ansible.builtin.command:
+    cmd: "mkdir -p /disks/sdb1/elasticagent"i
+  # this will take affect if the playbook command is set to FALSE
+  when: uninstall_elastic | default(false) | bool == false
+
+# this is to check if elastic is installed in that directory
+- name: Check if Elastic Agent file is installed
+  ansible.builtin.stat:
+    path: "/disks/sdb1/elasticagent/elastic-agent-8.10.4-linux-x86_64.tar.gz"
+  register: elastic_agent_file
+  when: uninstall_elastic | default(false) | bool == false
+
+# this will download elastic agent
+- name: Download Elastic Agent
+  ansible.builtin.command:
+    cmd: "curl -L -o /disks/sdb1/elasticagent/elastic-agent-8.10.4-linux-x86_64.tar.gz https://artifacts.elastic.co/downloads/beats/elastic-agent/elastic-agent-8.10.4-linux-x86_64.tar.gz"
+  when: uninstall_elastic | default(false) | bool == false
+#  when: not elastic_agent_file.stat.exists
+
+# this will extract the file
+- name: Extract elastic-agent archive
+  ansible.builtin.shell:
+    cmd: "tar xzvf /disks/sdb1/elasticagent/elastic-agent-8.10.4-linux-x86_64.tar.gz -C /disks/sdb1/elasticagent"
+  when: uninstall_elastic | default(false) | bool == false
+
+# this will override the existing "default" elastic-agent with a custom file which is placed in /roles/elastic_agent/templates
+
+- name: Copy Elastic Agent configuration template
+  ansible.builtin.template:
+    src: templates/elastic-agent.j2
+    dest: /disks/sdb1/elasticagent/elastic-agent-8.10.4-linux-x86_64/elastic-agent.yml
+    mode: '0644'
+  when: uninstall_elastic | default(false) | bool == false
+
+# Install elastic agent and make sure to update replace URL and Token to use your own 
+- name: Install Elastic Agent
+  shell: |
+    sudo /disks/sdb1/elasticagent/elastic-agent-8.10.4-linux-x86_64/elastic-agent install --base-path=/disks/sdb1/elasticagent/ --url="Add_Your_URL_Here" --enrollment-token="Add_Your_Token" --insecure --fleet-server-es-insecure --force
+  args:
+    executable: /bin/bash
+  when: uninstall_elastic | default(false) | bool == false
+# I stopped here: 
+
+- name: Delete /opt/Elastic
+  ansible.builtin.file:
+    path: "{{item}}"
+    state: absent
+  with_items:
+    - /opt/Elastic
+  when: uninstall_elastic | default(false) | bool == false
+
+
+- name: Check status of elastic-agent.service
+  ansible.builtin.command:
+    cmd: "systemctl status elastic-agent.service"
+  register: service_status
+  when: uninstall_elastic | default(false) | bool == false
+
+- name: Print the output
+  ansible.builtin.debug:
+    var: service_status.stdout_lines
+  when: uninstall_elastic | default(false) | bool == false
+
+# --extra-vars "uninstall_elastic=true"
+- name: Stop Elastic agent service (if specified for uninstall)
+  ansible.builtin.command:
+    cmd: "systemctl stop elastic-agent.service"
+  register: elastic_agent_stop_status
+  ignore_errors: yes
+ when: uninstall_elastic | default(false) | bool == true
+
+- name: Uninstall Elastic Agent
+  command: "/usr/bin/elastic-agent uninstall --force"
+  args:
+    chdir: "/usr/bin"
+  when: uninstall_elastic | default(false) | bool == True
+
+- name: Print the status of Elastic agent service after stopping
+  ansible.builtin.debug:
+    var: elastic_agent_status.stdout
+  when: uninstall_elastic | default(false) | bool == true
+  ignore_errors: yes
+
+- name: Remove Elastic Agent configuration files and directories
+  ansible.builtin.file:
+    path: "{{item}}"
+    state: absent
+  with_items:
+    - /opt/Elastic
+    - /disks/sdb1/elasticagent
+    - /tmp/elastic-agent-8.10.4-linux-x86_64
+    - /etc/systemd/system/elastic-agent.service
+  when: uninstall_elastic | default(false) | bool == true
