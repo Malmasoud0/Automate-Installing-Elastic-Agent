@@ -1,4 +1,4 @@
-# this is to create a custom directory where Elastic will be placed
+# This is to create a custom directory where Elastic will be placed
 - name: Create directory for Elastic Agent
   ansible.builtin.command:
     cmd: "mkdir -p /disks/sdb1/elasticagent"i
