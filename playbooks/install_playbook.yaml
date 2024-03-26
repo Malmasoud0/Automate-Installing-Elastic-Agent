@@ -1,6 +1,5 @@
 # playbook to run to install or "set to TRUE" if you want to uninstall it: 
 # ansible-playbook -i hosts_file roles/elastic_agent/tasks/main.yaml --extra-vars "uninstall_elastic=false"
-
 - name: Install Elastic Agent
   hosts: "Add_your_hosts_here"
   gather_facts: yes
