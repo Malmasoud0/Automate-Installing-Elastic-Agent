@@ -1,7 +1,7 @@
 # This is to create a custom directory where Elastic will be placed
 - name: Create directory for Elastic Agent
   ansible.builtin.command:
-    cmd: "mkdir -p /disks/sdb1/elasticagent"i
+    cmd: "mkdir -p /disks/sdb1/elasticagent"
   # this will take affect if the playbook command is set to FALSE
   when: uninstall_elastic | default(false) | bool == false
 
@@ -88,7 +88,6 @@
     path: "{{item}}"
     state: absent
   with_items:
-    - /opt/Elastic
     - /disks/sdb1/elasticagent
     - /tmp/elastic-agent-8.10.4-linux-x86_64
     - /etc/systemd/system/elastic-agent.service
